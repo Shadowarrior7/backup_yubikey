@@ -289,6 +289,7 @@ pub struct MakeCredentialExtensions {
     pub min_pin_length: bool,
     pub cred_blob: Option<Vec<u8>>,
     pub large_blob_key: Option<bool>,
+    pub recovery: bool,
 }
 
 impl TryFrom<cbor::Value> for MakeCredentialExtensions {
@@ -317,12 +318,14 @@ impl TryFrom<cbor::Value> for MakeCredentialExtensions {
                 return Err(Ctap2StatusCode::CTAP2_ERR_INVALID_OPTION);
             }
         }
+        let recovery = false;
         Ok(Self {
             hmac_secret,
             cred_protect,
             min_pin_length,
             cred_blob,
             large_blob_key,
+            recovery,
         })
     }
 }
@@ -1686,6 +1689,7 @@ mod test {
             min_pin_length: true,
             cred_blob: Some(vec![0xCB]),
             large_blob_key: Some(true),
+            recovery: false,
         };
         assert_eq!(extensions, Ok(expected_extensions));
     }

@@ -1,0 +1,9 @@
+libraries/opensk/ctap/data_formats.rs line 286 struct MakeCredentialExtensions I'm adding a line for recovery. This will probably break the entire system.
+Added recovery as a struct field on line 327 of the same file.
+Added recovery: false in the test on line 1691 of the same file.
+Added let recovery = false on line 321 of the same file.
+
+Interestingly, it compiled just fine after that and doesn't seem to have broken the entire system, so that's nifty.
+
+Added let recovery = extensions.recovery to line 870 of libraries/opensk/ctap/mod.rs
+It still compiles!
