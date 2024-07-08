@@ -46,7 +46,7 @@ pub struct Signature {
 /// A public key for ECDSA.
 ///
 /// Never call zeroize explicitly, to not invalidate any invariants.
-#[derive(Clone, Zeroize)]
+#[derive(Clone, Zeroize, Debug)]
 pub struct PubKey {
     p: PointP256,
 }

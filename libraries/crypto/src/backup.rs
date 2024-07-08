@@ -15,7 +15,7 @@ use p256::elliptic_curve::ScalarPrimitive;
 use p256::{self, NistP256, PublicKey, SecretKey};
 // use p256::{ecdh, ecdsa, NistP256, NonZeroScalar};
 // use p256::{ecdh::EphemeralSecret, EncodedPoint, ecdsa::PubKey};
-use rand_core::{OsRng, RngCore};
+use rand_core::{RngCore, OsRng};
 use sha2::{Digest, Sha256};
 
 

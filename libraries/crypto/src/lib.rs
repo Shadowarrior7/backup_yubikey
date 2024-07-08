@@ -26,6 +26,7 @@ pub mod hkdf;
 pub mod hmac;
 pub mod sha256;
 pub mod util;
+pub mod backup;
 
 /// Trait for hash functions that returns a 256-bit hash.
 ///
