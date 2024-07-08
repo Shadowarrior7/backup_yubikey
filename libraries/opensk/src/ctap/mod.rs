@@ -899,19 +899,19 @@ impl<E: Env> CtapState<E> {
             storage::store_credential(env, credential_source)?;
             random_id
         } else {
-            if recovery {
-                Vec::<u8>::new()
-            } else {
-                let credential_source = CredentialSource {
-                    private_key: private_key.clone(),
-                    rp_id_hash,
-                    cred_protect_policy,
-                    cred_blob,
-                };
-                env.key_store()
-                    .wrap_credential(credential_source)
-                    .map_err(|_| Ctap2StatusCode::CTAP2_ERR_VENDOR_INTERNAL_ERROR)?
-            }
+            // if recovery {
+            // Vec::<u8>::new()
+            // } else {
+            let credential_source = CredentialSource {
+                private_key: private_key.clone(),
+                rp_id_hash,
+                cred_protect_policy,
+                cred_blob,
+            };
+            env.key_store()
+                .wrap_credential(credential_source)
+                .map_err(|_| Ctap2StatusCode::CTAP2_ERR_VENDOR_INTERNAL_ERROR)?
+            // }
         };
 
         let mut auth_data = self.generate_auth_data(env, &rp_id_hash, flags)?;
