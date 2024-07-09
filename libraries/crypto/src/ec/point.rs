@@ -77,18 +77,18 @@ impl PointP256 {
         }
     }
 
-    fn from_projective(point: &PointProjective) -> PointP256 {
+    pub fn from_projective(point: &PointProjective) -> PointP256 {
         PointP256::from_affine(&point.to_affine())
     }
 
-    fn from_affine(affine: &PointAffine) -> PointP256 {
+    pub fn from_affine(affine: &PointAffine) -> PointP256 {
         PointP256 {
             x: affine.x.montgomery_to_field(),
             y: affine.y.montgomery_to_field(),
         }
     }
 
-    fn to_affine(&self) -> PointAffine {
+    pub fn to_affine(&self) -> PointAffine {
         PointAffine {
             x: Montgomery::field_to_montgomery(&self.x),
             y: Montgomery::field_to_montgomery(&self.y),
@@ -194,7 +194,7 @@ impl PointProjective {
         }
     }
 
-    fn to_affine(&self) -> PointAffine {
+    pub fn to_affine(&self) -> PointAffine {
         let zinv = self.z.inv();
         let x = &self.x * &zinv;
         let y = &self.y * &zinv;
@@ -219,7 +219,7 @@ impl PointProjective {
 
     /** Arithmetic **/
     // Complete formula from https://eprint.iacr.org/2015/1060.pdf, Algorithm 5.
-    fn add_mixed(&self, other: &PointAffine) -> PointProjective {
+    pub fn add_mixed(&self, other: &PointAffine) -> PointProjective {
         // Steps 1-2 (same as add).
         let mut t0 = &self.x * &other.x;
         let t1 = &self.y * &other.y;

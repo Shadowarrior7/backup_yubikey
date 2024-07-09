@@ -4,15 +4,15 @@ use hex_literal::hex;
 //use ::hkdf::Hkdf;
 //use hmac::{Hmac, Mac};
 use magic_crypt::{new_magic_crypt, MagicCrypt256, MagicCryptTrait};
-use p256::ecdh::EphemeralSecret;
-use p256::ecdsa::VerifyingKey;
-use p256::ecdsa::{
-    signature::{Signer, Verifier},
-    Signature, SigningKey,
-};
-use p256::elliptic_curve::sec1::ToEncodedPoint;
-use p256::elliptic_curve::ScalarPrimitive;
-use p256::{self, NistP256, PublicKey, SecretKey};
+// use p256::ecdh::EphemeralSecret;
+// use p256::ecdsa::VerifyingKey;
+// use p256::ecdsa::{
+//     signature::{Signer, Verifier},
+//     Signature, SigningKey,
+// };
+// use p256::elliptic_curve::sec1::ToEncodedPoint;
+// use p256::elliptic_curve::ScalarPrimitive;
+// use p256::{self, NistP256, PublicKey, SecretKey};
 // use p256::{ecdh, ecdsa, NistP256, NonZeroScalar};
 // use p256::{ecdh::EphemeralSecret, EncodedPoint, ecdsa::PubKey};
 use rand_core::{RngCore, OsRng};
@@ -30,18 +30,21 @@ use super::hmac;
 use super::sha256;
 use super::util;
 
+use super::ec::point::PointProjective;
+
 //use super::Hash256 as Sha256;
 use alloc::string::String;
 use crate::alloc::vec::Vec;
 use crate::alloc::borrow::ToOwned;
 use crate::alloc::string::ToString;
+use crate::ec::point::PointP256;
 
 
 #[derive(Clone, Debug)]
 struct YK { //YK stands for YubiKey
     backup_keys: Vec<ecdsa::PubKey>,
     backup_public: ecdsa::PubKey,
-    backup_private: SecretKey,
+    backup_private: ecdsa::SecKey,
     master: MagicCrypt256,
     login_keys: Vec<ecdsa::PubKey>,
     recovery_credentials_state: u32,
@@ -98,17 +101,17 @@ pub fn hkdf_primary(private_key: &EphemeralSecret, public_key: ecdsa::PubKey, in
     hkdf_try
 }
 
-pub fn hkdf_backup(private_key: &SecretKey, public_key: ecdsa::PubKey, info: &[u8; 26]) -> [u8; 32] {
+pub fn hkdf_backup(private_key: &ecdh::SecKey, public_key: ecdh::PubKey, info: &[u8; 26]) -> [u8; 32] {
     //Uses a secret key and a public key for diffie hellman key agreement, then
     //runs the shared secret through hkdf. Different from hkdf_primary because it
     //uses a secret key instead of an ephemeral secret. This is called by the backup
     //when recovering credentials.
     ////println!("Running hkdf_backup");
     let shared_secret =
-        p256::ecdh::diffie_hellman(private_key.to_nonzero_scalar(), public_key.as_affine());
+        private_key.exchange_x(&public_key);
     let salt = [0u8; 32];
     let mut hkdf_new = [0u8; 32];
-    hkdf::hkdf_256::<sha256::Sha256>( &shared_secret.raw_secret_bytes(), &salt, info, &mut hkdf_new);
+    hkdf::hkdf_256::<sha256::Sha256>( &shared_secret, &salt, info, &mut hkdf_new);
     hkdf_new
 }
 
@@ -238,7 +241,8 @@ pub fn register(userid: String, key: &mut YK, relying_party: &mut RP) {
             hasher.update(rp_id);
             let rp_hash = hasher.finalize();
             let mac_data = [&E.to_encoded_point(false).as_bytes()[..], &rp_hash[..]].concat();
-            let mac = mac(mac_key, &mac_data);
+            let mut mac = [0u8; 32];
+            hmac::hmac_256(&mac_key, &mac_data, &mut mac);
             let cred_id = [&E.to_sec1_bytes()[..], &mac[0..16]].concat();
             cred_id
         }
@@ -247,12 +251,25 @@ pub fn register(userid: String, key: &mut YK, relying_party: &mut RP) {
             //Format cred_key as a private key, which lets us extract a public key from it. We then
             //add that public key to backup_public_key to create the public key that will be sent as
             //a backup credential.
-            //println!("Making backup credential public key");
-            let cred_key_scalar = ScalarPrimitive::from_slice(&cred_key).unwrap();
-            let cred_key_private = SecretKey::new(cred_key_scalar);
-            let cred_key_public = cred_key_private.public_key().to_projective();
-            let credential_public_as_projective = cred_key_public + backup_public_key.to_projective();
-            ecdsa::PubKey::from_affine(credential_public_as_projective.to_affine()).unwrap()
+            
+            let cred_key_private = ecdsa::SecKey::from_bytes(&cred_key).unwrap();
+            let cred_key_public = cred_key_private.genpk();
+            let affine_point = cred_key_public.get_point().to_affine();
+            let pont_projective = PointProjective::from_affine(&affine_point);
+            let credential_public_as_projective =  pont_projective.add_mixed(&backup_public_key.get_point().to_affine());
+
+            //point conversion
+            let affine =credential_public_as_projective.to_affine();
+            let point = PointP256::from_affine(&affine);
+
+            //set the x and y coordinates
+            let mut x = [0u8; 32];
+            let mut y = [0u8; 32];
+            point.getx().to_int().to_bin(& mut x);
+            point.gety().to_int().to_bin(& mut y);
+
+            //return
+            ecdsa::PubKey::from_coordinates(&x, &y).unwrap()
         }
 
 

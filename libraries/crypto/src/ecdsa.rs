@@ -1,3 +1,4 @@
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -271,6 +272,10 @@ impl PubKey {
         H: Hash256,
     {
         self.verify_hash_vartime(&H::hash(msg), sign)
+    }
+
+    pub fn get_point(&self) -> &PointP256 {
+        &self.p
     }
 }
 
